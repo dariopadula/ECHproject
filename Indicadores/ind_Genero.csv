@@ -1,0 +1,29 @@
+varInteres;filtro;varsGroup;varFila;varCol;tipoVar;funcion;tipoBase;id_ind
+tipoh4;nper == 1;anio, semestre;e26;tipoh4;nom;dist;hog;1
+e26;nper == 1;anio, semestre;tipoh4;e26;nom;dist;hog;2
+tipoh4;nper == 1 & pobre == 1;anio, semestre;e26;tipoh4;nom;dist;hog;3
+ht19;nper == 1;anio, semestre;pobre;e26;cont;media;hog;4
+TotEduc;e27 >= 21 & e27 <= 65;anio, semestre;e26;;cont;media;per;5
+primarIncomp;e27 >= 15;anio, semestre;e26;rEdades5;dic;media;per;6
+TotEducMay12;e27 >= 21 & e27 <= 65;anio, semestre;e26;Mayor25;dic;media;per;7
+desocupado;pobEcAc == 1;anio, semestre;e26;;dic;media;per;8
+pobEcAc;pEdTrab == 1;anio, semestre;e26;;dic;media;per;9
+ocupados;pEdTrab == 1;anio, semestre;e26;;dic;media;per;10
+desocupado;pobEcAc == 1 & pobre == 1;anio, semestre;e26;;dic;media;per;11
+pobEcAc;pEdTrab == 1 & pobre == 1;anio, semestre;e26;;dic;media;per;12
+ocupados;pEdTrab == 1 & pobre == 1;anio, semestre;e26;;dic;media;per;13
+desocupado;pobEcAc == 1;anio, semestre;TotEducRe4;e26;dic;media;per;14
+pobEcAc;pEdTrab == 1;anio, semestre;TotEducRe4;e26;dic;media;per;15
+ocupados;pEdTrab == 1;anio, semestre;TotEducRe4;e26;dic;media;per;16
+condActividad;;anio, semestre;e26;condActividad;nom;dist;per;17
+categOcup;ocupados == 1;anio, semestre;e26;categOcup;nom;dist;per;18
+Der_Jubil;ocupados == 1;anio, semestre;e26;Der_Jubil;nom;dist;per;19
+subempleo;ocupados == 1;anio, semestre;e26;;dic;media;per;20
+ramaAct;ocupados == 1;anio, semestre;e26;ramaAct;nom;dist;per;21
+actividad_4C;e27 >= 15 & e27 <= 24;anio, semestre;e26;actividad_4C;nom;dist;per;22
+ingSueldoXhora01;ocupados == 1 & categOcup %in% c(1,2);anio, semestre;e26;;cont;media;per;23
+ingSueldoXhora01;ocupados == 1 & categOcup %in% c(1,2);anio, semestre;TotEducRe;e26;cont;media;per;24
+ht11_svl;nper == 1;anio, semestre;e26;;cont;media;hog;25
+sinIngreso;e27 >= 14;anio, semestre;e26;;dic;media;per;26
+pobre;nper == 1;anio, semestre;e26;;dic;media;hog;27
+indigente;nper == 1;anio, semestre;e26;;dic;media;hog;28
