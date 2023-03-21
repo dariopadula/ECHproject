@@ -1,0 +1,44 @@
+varInteres;filtro;varsGroup;varFila;varCol;tipoVar;funcion;tipoBase;id_ind
+pobre;;anio, semestre;municipio;rEdades4;dic;media;per;1
+pobre;nper == 1;anio, semestre;municipio;;dic;media;hog;2
+indigente;;anio, semestre;municipio;menor18;dic;media;per;3
+indigente;nper == 1;anio, semestre;municipio;;dic;media;hog;4
+desocupado;pobEcAc == 1;anio, semestre;municipio;e26;dic;media;per;5
+pobEcAc;pEdTrab == 1;anio, semestre;municipio;e26;dic;media;per;6
+ocupados;pEdTrab == 1;anio, semestre;municipio;e26;dic;media;per;7
+pobEcAc;pEdTrab == 1;anio, semestre;municipio;e26;dic;media;per;8
+desocupado;pobEcAc == 1;anio, semestre;municipio;Mayor25;dic;media;per;9
+desocupado;nper == 1 & pobEcAc == 1;anio, semestre;municipio;e26;dic;media;hog;10
+asistEdu;e27 <= 3;anio, semestre;municipio;;dic;media;per;11
+asistEdu;e27 >= 4 & e27 <= 5;anio, semestre;municipio;;dic;media;per;12
+asistEdu;e27 <= 5;anio, semestre;municipio;;dic;media;per;13
+primarIncomp;e27 >= 15 & e27 <= 65;anio, semestre;municipio;;dic;media;per;14
+CBincomp;e27 >= 17 & e27 <= 65;anio, semestre;municipio;;dic;media;per;15
+SecundCom;e27 >= 21 & e27 <= 65;anio, semestre;municipio;;dic;media;per;16
+rezagoEsc;e27 >= 8 & e27 <= 15;anio, semestre;municipio;;dic;media;per;17
+TotEduc;e27 >= 21 & e27 <= 65;anio, semestre;municipio;;cont;media;per;18
+ht11;nper == 1;anio, semestre;municipio;e26;cont;media;hog;19
+ht11_svl;nper == 1;anio, semestre;municipio;e26;cont;media;hog;20
+NoProblem;nper == 1;anio, semestre;municipio;;dic;media;hog;21
+Humedad;nper == 1;anio, semestre;municipio;;dic;media;hog;22
+Grietas;nper == 1;anio, semestre;municipio;;dic;media;hog;23
+Luz;nper == 1;anio, semestre;municipio;;dic;media;hog;24
+Derrumbe;nper == 1;anio, semestre;municipio;;dic;media;hog;25
+servSanInco;nper == 1;anio, semestre;municipio;;dic;media;hog;26
+hacinamiento;nper == 1;anio, semestre;municipio;;dic;media;hog;27
+Cable;nper == 1;anio, semestre;municipio;;dic;media;hog;28
+Fono;nper == 1;anio, semestre;municipio;;dic;media;hog;29
+Internet;nper == 1;anio, semestre;municipio;;dic;media;hog;30
+Compu;nper == 1;anio, semestre;municipio;;dic;media;hog;31
+Lavarropa;nper == 1;anio, semestre;municipio;;dic;media;hog;32
+Lavavaj;nper == 1;anio, semestre;municipio;;dic;media;hog;33
+Micro;nper == 1;anio, semestre;municipio;;dic;media;hog;34
+Auto;nper == 1;anio, semestre;municipio;;dic;media;hog;35
+clima_edu;nper == 1 & !is.na(clima_edu);anio, semestre;municipio;clima_edu;ord;dist;hog;36
+actividad_4C;e27 >= 15 & e27 <= 24;anio, semestre;municipio;actividad_4C;nom;dist;per;37
+Cobertura;;anio, semestre;municipio;Cobertura;nom;dist;per;38
+Cobertura;e27 <= 4;anio, semestre;municipio;Cobertura;nom;dist;per;39
+Cobertura;e26 == 2 & e27 >= 15 & e27 <= 49;anio, semestre;municipio;Cobertura;nom;dist;per;40
+Cobertura;e27 >= 60;anio, semestre;municipio;Cobertura;nom;dist;per;41
+TenViv;nper == 1;anio, semestre;municipio;TenViv;ord;dist;hog;42
+VivAdec;nper == 1;anio, semestre;municipio;VivAdec;ord;dist;hog;43
