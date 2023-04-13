@@ -1,0 +1,992 @@
+---
+title: ""
+output:
+  bookdown::html_document2:
+    df_print: paged
+    number_sections: yes
+    toc: true
+    toc-title: "Tabla de contenidos"
+    # css: estilo.css
+    toc_float: 
+      collapsed: true
+      smooth_scroll: true
+bibliography: biblio.bib  
+bibliography_style: apa
+# header-includes:
+# - \usepackage[utf8]{inputenc}
+# - \usepackage[spanish]{babel}
+# - \usepackage{booktabs}
+# - \usepackage{float}
+# - \floatplacement{table}{H}
+# - \usepackage{caption}
+# - \usepackage{bbm}
+# - \usepackage{fancyhdr}
+# - \usepackage{geometry}
+# geometry: left=2cm,right=2cm,top=3cm,bottom=3cm
+---
+
+
+
+
+<style>
+  h1 {
+    color: #58D68D;
+    font-size: 25px;
+  }
+
+  h2 {
+    color: #58D68D;
+    font-size: 20px;
+  }
+
+  h3 {
+    color: #58D68D;
+    font-size: 16px;
+  }
+  
+</style>
+
+
+
+<!-- <img src="../logos/mapa_icon-01.png" alt="Logo de mi empresa" style="float: left; margin-right: 10px;" /> -->
+
+<!-- <style> -->
+<!--   /* Centrar el título */ -->
+<!--   .title { -->
+<!--     text-align: center; -->
+<!--   } -->
+<!-- </style> -->
+
+<!-- <style> -->
+<!--   .author, .date { -->
+<!--     text-align: center; -->
+<!--   } -->
+<!-- </style> -->
+
+
+
+<style>
+  /* Establece el ancho del contenedor a 100% */
+  .container {
+    width: 100%;
+  }
+  
+  /* Centra el título y le da un tamaño de fuente diferente */
+  div.doc-title {
+    text-align: center;
+    font-size: 36px;
+    font-weight: bold;
+    margin-top: 40px;
+    margin-bottom: 20px;
+  }
+  
+  /* Centra el subtitulo */
+  div.subtitle {
+    text-align: center;
+    font-size: 25px;
+    margin-top: 20px;
+    margin-bottom: 20px;
+  }
+  
+  /* Centra el autor */
+  ul.authors {
+    text-align: center;
+    font-size: 16px;
+    margin-top: 20px;
+    margin-bottom: 20px;
+  }
+  
+  /* Centra fecha */
+  div.date {
+    text-align: center;
+    font-size: 16px;
+    margin-top: 20px;
+    margin-bottom: 20px;
+  }
+</style>
+
+<div class="container">
+  <div class="doc-title">Informe socioeconómico
+</div>
+  <div class="subtitle">Una perspectiva de género</div>
+<div class="subtitle">Fuente: Encuesta continua de hogares 2009-2018</div>
+  <ul class="authors">
+    <p>Unidad de Estadística</p>
+    <p>Servicio de Gestión Estratégica</p>
+    <p>Departamento de Desarrollo Sostenible e Inteligente</p>
+  </ul>
+<div class="date"> 2023-03-21 </div>
+</div>
+
+
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = F,message = F,warning = F,
+                      eval = T,fig.align="center",out.width = "100%")
+```
+
+```{r}
+paquetes = c('dplyr','ggplot2','ggrepel','knitr','kableExtra',
+             'tidyr','plotly','data.table',
+             'conflicted')
+
+
+instalpkg = installed.packages()[,'Package']
+pkginstall = paquetes[!paquetes %in% instalpkg]
+
+if(length(pkginstall) > 0) install.packages(pkginstall)
+
+###########################
+#### LIBRERIAS
+for(ii in paquetes) eval(bquote(library(.(ii))))
+
+```
+
+
+```{r}
+
+
+conflict_prefer("select","dplyr")
+conflict_prefer("filter","dplyr")
+conflict_prefer("summarise","dplyr")
+conflict_prefer("mutate","dplyr")
+conflict_prefer("rename","dplyr")
+
+```
+
+
+
+```{r settingPars}
+anioRef = 2021
+### Palabra clave
+palClave = 'Genero'
+### FIltro de las estimaciones
+filtroKeep = NULL
+## Color cuadros
+Stripe_Color = "#D7BDE2"
+```
+
+
+```{r}
+## Carga los indicadores y sus caracteristicas
+refInd = read.table(paste0('../Indicadores/ind_',palClave,'.csv'),sep = ';',header = T)
+## Etiquetas
+etiq = read.table('../Etiquetas/etiquetas.csv',sep = ';',header = T,encoding = 'latin1')
+## Etimaciones
+load(paste0('../Resultados/01_AAA_resultsAll_',palClave,'.RData'))
+## Pega etiquetas
+estimAll = estimAll %>% #mutate(orden = row_number()) %>% 
+  left_join(etiq %>% 
+            mutate(opcVar = as.character(opcVar)) %>% select(-desc), by = c('varFila' = 'varNom','opcFila' = 'opcVar' )) %>% 
+    mutate(opcFila = ifelse(is.na(label),opcFila,label)) %>% 
+  rename('labelFil' = 'label') %>% 
+  left_join(etiq %>% 
+            mutate(opcVar = as.character(opcVar)) %>% select(-desc), by = c('varCol' = 'varNom','opcCol' = 'opcVar' )) 
+
+```
+
+```{r funciones}
+####################
+### funciones
+fun = dir('../Funciones/')
+fun = fun[grep('.R',fun,ignore.case = T)]
+for(ii in fun) source(paste0('../Funciones/',ii))
+
+```
+
+
+# Introducción
+
+El informe presenta una serie de indicadores socioeconómicos que buscan una comprensión de la realidad del deparatamento de Montevideo desde una perspectiva de género. Recoge la evolución de estos indicadores en el tiempo, a través del análisis del período 2009-2021.
+
+El informe toma como referencia los datos de la Encuesta Continua de Hogares (ECH) del Instituto Nacional de Estadística (INE). Se estructura en dos secciones: en la primera se exploran algunos ejes teóricos-conceptuales que permiten un acercamiento a la perspectiva de género, optando por el enfoque del Desarrollo Humano como guía para
+el análisis; en la segunda se presentan y analizan indicadores relevantes referentes a género para el departamento de Montevideo en diversas dimensiones: tipología del hogar, educación, ocupación, ingreso, pobreza e indigencia.
+
+# Ejes teóricos-conceptuales
+
+## Género y Desarrollo Humano
+
+Para comenzar el informe resulta pertinente aportar ciertas dimensiones teórico-conceptuales que permiten analizar las desigualdades estructurales existentes en nuestra sociedad, en particular, aquellas asociadas al género. Con este cometido, se ha optado por la perspectiva del Desarrollo Humano que propone un abordaje crítico a partir del análisis de la desigualdad considerando los factores sociales, culturales e institucionales que la determinan, y propone una ruptura de esta condición de opresión hacia los grupos vulnerados.
+
+Desde este enfoque, se concibe el desarrollo humano como la ampliación de funcionamientos y capacidades. Los funcionamientos refieren a lo que una persona logra ser a lo largo de su vida, mientras que las capacidades se asocian a las libertades que enfrentan para elegir entre diversas opciones. De este modo, para este enfoque no solo son importantes los niveles de calidad de vida alcanzados (funcionamientos), sino que también otorga una importancia
+intrínseca a los derechos y libertades de todas las personas sin distinción de sexo, etnia, otros.
+
+En este sentido, el objetivo del desarrollo de las sociedades se vincula con la ampliación de las libertades de las personas, incorporando la igualdad y sostenibilidad de las oportunidades y la potenciación de las personas para participar y beneficiarse del proceso de desarrollo [@DelaCruz:Genero2007]. En particular, las relaciones de género se convierten
+en un aspecto clave del desarrollo humano ya que pueden potenciar u obstaculizar el desarrollo de las capacidades de las personas.
+
+Además, el enfoque del desarrollo humano propone avanzar en un análisis multidimensional del desarrollo incorporando diferentes factores, tales como educación, salud, trabajo, entre otros.
+
+
+## La familia: nuevas configuraciones
+
+La familia representa una institución central de la sociedad, ya que se relaciona directamente con el bienestar de las personas. Esta relación refiere a dos aspectos principales, en primer lugar, la familia influye en el acceso a activos tanto económicos como sociales y simbólicos y, en segundo lugar, la familia condiciona el acceso al mercado de trabajo (@Jelin:Familias2007). Así, las transformaciones en la dinámica familiar involucran cambios en el bienestar, a través de aspectos económicos, sociales y simbólicos, y del acceso al mercado de trabajo.
+
+Las transformaciones que se registran en relación a la composición de los hogares para el caso de América Latina,
+presentan situaciones diversas y particulares para los diferentes países. Sin embargo, en las últimas décadas se visualizan tendencias comunes vinculadas al aumento de los hogares monoparentales, en particular con jefas de hogar, y una disminución de los hogares biparentales y nucleares. No obstante, los hogares nucleares con jefatura masculina
+continúan predominando como estructura familiar y la jefatura femenina prevalece en hogares monoparentales.
+
+Como sostiene [@Arriagada:Fam2007], la transformación en la dinámica familiar “(. . . ) desde una perspectiva demográfica, se relaciona con el incremento de la soltería, de las separaciones y divorcios, de las migraciones y de la esperanza de vida. Desde un enfoque socioeconómico y cultural, obedece a la creciente participación económica de las mujeres,
+que les permite la independencia económica y la autonomía social para constituir o continuar en hogares sin parejas.”
+
+Desde una perspectiva de género, “(. . . ) mientras se ha ampliado el acceso de la mujer al trabajo remunerado, lo que consume tiempo que tradicionalmente ella dedicaba a cubrir las responsabilidades familiares, no se ha producido un cambio equivalente en la redistribución del tiempo que los hombres dedican al trabajo y al hogar” (@Sunkel:Papel2006). Esto implica un pasaje del modelo de proveedor tradicional, donde el hombre trabaja y la mujer realiza las tareas domésticas, al modelo de proveedor modificado, donde el hombre trabaja y la mujer trabaja y realiza las tareas domésticas. En consecuencia, los cambios en el rol tradicional asignado a la mujer, generan una tensión entre la distribución del tiempo asignado a las tareas domésticas y al mercado de trabajo, que la coloca en una situación de desigualdad asociada al género.
+
+El acceso de la mujer al mercado laboral genera una crisis del tipo de familia patriarcal, basada en la autoridaddominación del hombre adulto sobre la familia [@Sunkel:Papel2006].
+
+
+##  Mujer y trabajo
+
+Para comenzar un análisis de la dinámica de empleo desde una perspectiva de género, resulta necesario destacar la importancia del trabajo no únicamente como un modo de generar ingresos, sino también como un mecanismo para alcanzar una mayor autonomía y desarrollo personal. De esta forma, la participación y el modo de integración de las personas al mercado de trabajo es sumamente relevante para entender algunas desigualdades existentes.
+
+Las desigualdades de género presentes en el mercado de trabajo limitan considerablemente la posibilidad de emancipación y empoderamiento de las mujeres. La discriminación económica por género refiere al caso en el cual individuos con iguales características económicas asociadas a la productividad (tales como educación y experiencia, entre otras) obtienen diferentes resultados que se atribuyen a características personales no económicas, en particular, al sexo
+[@Amarante:Seg2002].
+
+Si bien en las últimas décadas ha existido una creciente incorporación de la mujer al mercado de trabajo, aún persisten fuertes desigualdades laborales entre hombres y mujeres. En consecuencia, es fundamental garantizar que la incorporación de la mujer al trabajo remunerado no se realice en condiciones desventajosas en relación a los hombres con
+similares características.
+
+Adicionalmente, el hecho de que no se visualice una menor dedicación a las tareas domésticas, genera que las mujeres enfrenten una doble jornada laboral y, por tanto, requieren condiciones laborales más flexibles que permitan compatibilizar el trabajo remunerado y no remunerado. Esto trae aparejado, por un lado, mayores tasas de desocupación para las mujeres y, por otro, que se las empleen en puestos de menor carga horaria, los cuales suelen estar asociados
+a condiciones desfavorables. A partir de esto, resulta imprescindible proveer los servicios necesarios para que las mujeres enfrenten una menor carga horaria y promover la corresponsabilidad de las tareas de cuidados.
+
+##  La pobreza desde una perspectiva de género
+
+Desde la perspectiva del Desarrollo Humano, la pobreza se define como la escasez de recursos que impide el goce de una vida larga y saludable. En este sentido, los caminos para erradicar la pobreza se asocian con la identificación y potenciación de las capacidades de las personas con el fin de mejorar su bienestar [@CEPAL-UNIFEM:Unidad].
+
+De modo de incorporar la perspectiva de género, según CEPAL-UNIFEM, resulta relevante la consideración de dos dimensiones específicas para complementar el análisis de la pobreza, teniendo en cuenta su carácter multidimensional y dinámico. Estas dos dimensiones son: “la autonomía económica y la violencia de género” (@CEPAL-UNIFEM:Unidad), las que permiten visibilizar el efecto diferenciado de la pobreza entre hombres y mujeres. La *autonomía económica*, se reconoce como
+consecuencia directa de la desigualdad de acceso al mercado laboral que afecta a las mujeres, así como a diversos servicios sociales, educativos y culturales. En segundo lugar, la *violencia de género* reduce las posibilidades de autonomía y emancipación de la mujer, siendo identificada tanto como causa y consecuencia de la situación de pobreza.
+
+Si bien analíticamente existen importantes avances en la definición de la pobreza que reconocen la importancia de trabajar con métodos multidimensionales e incorporar una perspectiva de género, el método del ingreso continúa siendo el de mayor utilización, dada su facilidad operativa y la posibilidad de realizar comparaciones. Según este método, se considera a un hogar pobre cuando sus ingresos per cápita no logran cubrir una canasta básica. Como se desprende de los párrafos anteriores, este método presenta ciertas limitaciones asociadas a su carácter unidimensional. Por un lado, el ingreso está fuertemente influido por condiciones coyunturales, puede modificarse en función del empleo y el desempleo. Por otro lado, no incorpora dimensiones relevantes, entre ellas, las condiciones habitacionales y el modo en que las personas se insertan en la actividad social y cultural, que pueden constituir una situación de pobreza.
+
+Por último, tener en cuenta el ingreso de los hogares para clasificarlos en pobres o no pobres, deja de lado las posibles distribuciones del ingreso entre los miembros del hogar. Desde el enfoque de género se entiende que analizar el ingreso global de los hogares puede ocultar una situación que resulta común para muchas mujeres, que es la falta de ingresos propios y que se relaciona directamente con su capacidad de decisión y autonomía económica [@DelaCruz:Genero2007].
+
+
+# Análisis
+
+## Tipología del hogar
+
+En esta sección se presenta, en primer lugar, el tipo de jefatura del hogar (de jure y de facto) según el sexo de la jefatura y el año (cuadro 1). En la ECH, al igual que en otras estadísticas oficiales, la jefatura del hogar se define por autodeclarada (jefe/a de jure). En este sentido, no necesariamente condice con el proceso de toma de decisiones o el aporte económico, sino que refiere a aquel miembro que se reconoce o es reconocido por los demás miembros como jefe de hogar (@CEPAL:Arriagada2002). La jefatura del hogar así entendida no admite una jefatura compartida, por ejemplo, por ambos cónyuges. Por su parte, la jefatura de facto corresponde al miembro del hogar que realiza un mayor aporte al ingreso familiar, y la de facto flexible implica que es compartida por ambos cónyuges.
+
+En segundo lugar, se muestra la tipología de los hogares según el sexo de la jefatura de jure del hogar (auto declarada) y el año (figura 1 y cuadro \@ref(tab:tipoH02)). Las categorías consideradas son:
+
+* **Unipersonal**: hogares con un único integrante
+* **Monoparental**: hogares con el/la jefe/a e hijo/a(s)
+* **Nuclear**: hogares con la pareja sin hijo/a(s)
+* **Biparental**: hogares con pareja e hijo/a(s)
+
+
+Posteriormente, se presenta la tipología de los hogares pobres según el sexo de la jefatura (figura 3 y cuadro \@ref(tab:tipoH04)). Y, finalmente, la cantidad de integrantes del hogar, observando las diferencias según si es un hogar pobre o no y el sexo de la jefatura (cuadro \@ref(tab:tipoH05)).
+
+
+
+
+```{r tipoH02}
+cc = integraCuadros(datEstim = estimAll, 
+               id_Indicador = c(1),
+               varAggr = 'opcG02',
+               addTotal = TRUE,
+               filtroKeep = filtroKeep,
+               varsJoin = c('opcG01','opcFila'),
+               accionInt = '',
+               colsDrop = NULL,
+               opcGroupNames = 'Años',
+               opcFilaName = 'Sexo',
+               restColsNames = NULL) 
+
+
+kbl_CuadroEvol(cc,
+                header = NULL,
+                nColGroup = 1,
+                Caption = 'Tipología de hogares según sexo de la jefatura',
+                nFilas = 3)
+
+
+```
+
+
+
+
+```{r tipoH03}
+cc = integraCuadros(datEstim = estimAll, 
+               id_Indicador = c(2),
+               varAggr = 'opcG02',
+               addTotal = TRUE,
+               filtroKeep = filtroKeep,
+               varsJoin = c('opcG01','opcFila'),
+               accionInt = '',
+               colsDrop = NULL,
+               opcGroupNames = 'Años',
+               opcFilaName = 'Sexo',
+               restColsNames = NULL,
+               nround = 1,
+               flipp = T,
+               ordenCols = c(5,2,3,1,4)) 
+
+
+kbl_CuadroEvol(cc,
+                header = NULL,
+                nColGroup = 1,
+                Caption = 'Sexo de la jefatura según tipología de hogares',
+                nFilas = 3)
+
+
+```
+
+
+```{r tipoH04}
+cc = integraCuadros(datEstim = estimAll, 
+               id_Indicador = c(3),
+               varAggr = 'opcG02',
+               addTotal = T,
+               filtroKeep = filtroKeep,
+               varsJoin = c('opcG01','opcFila'),
+               accionInt = '',
+               colsDrop = NULL,
+               opcGroupNames = 'Años',
+               opcFilaName = 'Sexo',
+               restColsNames = NULL,
+               nround = 1,
+               flipp = F,
+               ordenCols = NULL) 
+
+
+kbl_CuadroEvol(cc,
+                header = NULL,
+                nColGroup = 1,
+                Caption = 'Tipología de hogares para hogares pobres según sexo de la jefatura',
+                nFilas = 3)
+
+
+```
+
+
+
+```{r tipoH05}
+cc = integraCuadros(datEstim = estimAll, 
+               id_Indicador = c(4:6),
+               varAggr = 'opcG02',
+               addTotal = F,
+               filtroKeep = filtroKeep,
+               varsJoin = c('opcG01','opcFila'),
+               accionInt = 'cbind',
+               colsDrop = 'opcFila',
+               opcGroupNames = 'Años',
+               opcFilaName = NULL,
+               restColsNames = rep(c('Hombre','Mujer','Total'),3),
+               nround = 1,
+               flipp = T,
+               ordenCols = NULL) 
+
+
+kbl_CuadroEvol(cc,
+                header = '" " = 1, "Hogares Pobres" = 3,"Hogares no Pobres" = 3,"Total hogares " = 3',
+                nColGroup = NULL,
+                Caption = 'Número de integrantes del hogar según sexo de la jefatura',
+                nFilas = 3)
+
+
+```
+
+## Educación
+
+En esta sección se muestran los siguientes indicadores según sexo para el período 2009-2018: promedio de años de estudio para personas entre 21 y 65 años (cuadro \@ref(tab:educ06)), porcentaje de personas con primaria incompleta, primaria completa y ciclo básico incompleto por grupo de edad (figura 4, cuadro \@ref(tab:educ07), figura 5 y cuadro \@ref(tab:educ08)) y porcentaje de hombres y mujeres con más de 12 años de educación para dos tramos etarios: entre 18 y 24, y entre 25 y 65 años (figura 6 y cuadro \@ref(tab:educ09)).
+
+
+
+```{r educ06}
+cc = integraCuadros(datEstim = estimAll, 
+               id_Indicador = c(7),
+               varAggr = 'opcG02',
+               addTotal = F,
+               filtroKeep = filtroKeep,
+               varsJoin = c('opcG01','opcFila'),
+               accionInt = '',
+               colsDrop = 'opcFila',
+               opcGroupNames = 'Años',
+               opcFilaName = NULL,
+               restColsNames = c('Hombre','Mujer','Total'),
+               nround = 1,
+               flipp = F,
+               ordenCols = NULL,
+               simple = T) 
+
+
+kbl_CuadroEvol(cc,
+                header = NULL,
+                nColGroup = NULL,
+                Caption = 'Promedio de años de educación en personas entre 21 y 65 años según sexo',
+                nFilas = 3)
+
+
+```
+
+
+
+
+```{r educ07}
+cc = integraCuadros(datEstim = estimAll, 
+               id_Indicador = c(8),
+               varAggr = 'opcG02',
+               addTotal = F,
+               filtroKeep = filtroKeep,
+               varsJoin = c('opcG01','opcFila'),
+               accionInt = '',
+               colsDrop = NULL,
+               opcGroupNames = 'Años',
+               opcFilaName = 'Sexo',
+               restColsNames = c('De 15 a 20','De 21 a 29','De 30 a 39','40 o +','Total'),
+               nround = 1,
+               flipp = F,
+               ordenCols = NULL) 
+
+
+kbl_CuadroEvol(cc,
+                header = NULL,
+                nColGroup = 1,
+                Caption = 'Personas con primaria incompleta según sexo por grupo de edad',
+                nFilas = 3)
+
+
+```
+
+
+```{r educ08}
+cc = integraCuadros(datEstim = estimAll, 
+               id_Indicador = c(9),
+               varAggr = 'opcG02',
+               addTotal = F,
+               filtroKeep = filtroKeep,
+               varsJoin = c('opcG01','opcFila'),
+               accionInt = '',
+               colsDrop = NULL,
+               opcGroupNames = 'Años',
+               opcFilaName = 'Sexo',
+               restColsNames = c('De 17 a 20','De 21 a 29','De 30 a 39','40 o +','Total'),
+               nround = 1,
+               flipp = F,
+               ordenCols = NULL) 
+
+
+kbl_CuadroEvol(cc,
+                header = NULL,
+                nColGroup = 1,
+                Caption = 'Porcentaje de personas con primaria completa que no terminaron el ciclo básico según sexo por grupo de
+edad',
+                nFilas = 3)
+
+
+```
+
+
+```{r educ09}
+cc = integraCuadros(datEstim = estimAll, 
+               id_Indicador = c(10),
+               varAggr = 'opcG02',
+               addTotal = TRUE,
+               filtroKeep = filtroKeep,
+               varsJoin = c('opcG01','opcFila'),
+               accionInt = '',
+               colsDrop = NULL,
+               opcGroupNames = 'Años',
+               opcFilaName = 'Sexo',
+               restColsNames = NULL,
+               nround = 1,
+               flipp = T,
+               ordenCols = NULL) 
+
+
+kbl_CuadroEvol(cc,
+                header = NULL,
+                nColGroup = 1,
+                Caption = 'Porcentaje de personas con más de 12 años de educación según sexo',
+                nFilas = 3)
+
+
+```
+
+## Ocupación
+
+Como fue mencionado anteriormente, el estudio de la dinámica ocupacional desde una perspectiva de género adquiere gran relevancia en el entendido de que el trabajo no implica únicamente una fuente para generar ingresos sino que también permite alcanzar mayores niveles de autonomía y se constituye en un medio de integración social.
+
+Con el objetivo de estudiar esta dinámica para el período 2009 - `r anioRef`, en primer lugar, se analiza la participación de las mujeres en el mercado de trabajo. Para ello, se presenta la tasa de actividad, la tasa de empleo y la tasa de desempleo (figura 7 y cuadro \@ref(tab:ocup10)) y se analizan estas tasas para la población perteneciente a hogares pobres (figura 8 y cuadro \@ref(tab:ocup11)).
+A su vez, se analizan las tasas según años de educación (cuadro \@ref(tab:ocup12)) y la condición de actividad según sexo (figura 9 y cuadro \@ref(tab:ocup13)).
+
+
+* La *tasa de actividad* es la proporción de personas que trabajan o buscan empleo con relación a la población en edad de trabajar (PET).
+* La *tasa de empleo u ocupación* da cuenta de la proporción de personas que declaran trabajar en forma remunerada con relación al total de la población en edad de trabajar (PET).
+* La *tasa de desempleo* es la relación entre las personas desocupadas y la población económicamente activa (PEA).
+* La *población económicamente activa* son las personas en edad de trabajar (14 años o más) que lo hacen o buscan un trabajo remunerado.
+
+
+En segundo lugar, se presentan las características del empleo por sexo: categorías de ocupación (figura 10 y cuadro \@ref(tab:ocup14)), derecho a la jubilación (figura 11 y cuadro \@ref(tab:ocup15)), carga horaria semanal (figura 12 y cuadro \@ref(tab:ocup16)), subempleo (cuadro \@ref(tab:ocup17)), rama de actividad (figura 13 y cuadro \@ref(tab:ocup18)) y condición de actividad para jóvenes entre 15 y 24 años (figura 14 y cuadro \@ref(tab:ocup19)).
+
+Subempleada o subocupada es aquella persona que trabaja menos horas semanales de las que estaría disponible y que estaría dispuesta a trabajar más horas.
+El análisis de la rama de actividad en que se insertan hombres y mujeres permite identificar si existe segregación ocupacional, es decir, si hay concentración4 de hombres y mujeres en diferentes ocupaciones.
+
+
+### Participación en el mercado laboral
+
+```{r ocup10}
+cc = integraCuadros(datEstim = estimAll, 
+               id_Indicador = c(12,13,11),
+               varAggr = 'opcG02',
+               addTotal = FALSE,
+               filtroKeep = filtroKeep,
+               varsJoin = c('opcG01','opcFila'),
+               accionInt = 'cbind',
+               colsDrop = NULL,
+               opcGroupNames = 'Año',
+               opcFilaName = NULL,
+               restColsNames = rep(c('Hombre','Mujer','Total'),3),
+               simple = T) 
+
+kbl_CuadroEvol(cc,
+                header = '" " = 1, "Tasa de Actividad" = 3,"Tasa de Empleo" = 3,"Tasa de Desempleo" = 3',
+                nColGroup = NULL,
+                Caption = 'Tasa de actividad, empleo y desempleo según sexo',
+                nFilas = 3)
+
+
+```
+
+
+
+```{r ocup11}
+cc = integraCuadros(datEstim = estimAll, 
+               id_Indicador = c(15,16,14),
+               varAggr = 'opcG02',
+               addTotal = FALSE,
+               filtroKeep = filtroKeep,
+               varsJoin = c('opcG01','opcFila'),
+               accionInt = 'cbind',
+               colsDrop = NULL,
+               opcGroupNames = 'Año',
+               opcFilaName = NULL,
+               restColsNames = rep(c('Hombre','Mujer','Total'),3),
+               simple = T) 
+
+kbl_CuadroEvol(cc,
+                header = '" " = 1, "Tasa de Actividad" = 3,"Tasa de Empleo" = 3,"Tasa de Desempleo" = 3',
+                nColGroup = NULL,
+                Caption = 'Tasa de actividad, empleo y desempleo según sexo para personas pobres',
+                nFilas = 3)
+
+
+```
+
+
+
+```{r ocup12}
+cc = integraCuadros(datEstim = estimAll, 
+               id_Indicador = c(18,19,17),
+               varAggr = 'opcG02',
+               addTotal = FALSE,
+               filtroKeep = filtroKeep,
+               varsJoin = c('opcG01','opcFila'),
+               accionInt = 'cbind',
+               colsDrop = NULL,
+               opcGroupNames = c('Anio'),
+               opcFilaName = 'Estudio',
+               restColsNames = rep(c('Hombre','Mujer','Total'),3),
+               simple = F) 
+
+kbl_CuadroEvol(cc,
+               header = '" " = 1, "Tasa de Actividad" = 3,"Tasa de Empleo" = 3,"Tasa de Desempleo" = 3',
+               nColGroup = 1,
+               Caption = 'Tasa de actividad, empleo y desempleo por sexo según años de educación',
+               nFilas = 5)
+
+
+```
+
+
+
+```{r ocup13}
+cc = integraCuadros(datEstim = estimAll, 
+               id_Indicador = c(20),
+               varAggr = 'opcG02',
+               addTotal = T,
+               filtroKeep = filtroKeep,
+               varsJoin = c('opcG01','opcFila'),
+               accionInt = '',
+               colsDrop = NULL,
+               opcGroupNames = 'Aos',#'Años'
+               opcFilaName = 'Sexo',
+               restColsNames = NULL,
+               nround = 1,
+               flipp = F,
+               ordenCols = NULL) 
+
+
+kbl_CuadroEvol(cc,
+                header = '" " = 2, "Activas" = 2,"Inactivas" = 4," " = 1',
+                nColGroup = 1,
+                Caption = 'Personas por condición de actividad según sexo',
+                nFilas = 3)
+
+
+```
+
+
+```{r ocup14}
+cc = integraCuadros(datEstim = estimAll, 
+               id_Indicador = c(21),
+               varAggr = 'opcG02',
+               addTotal = T,
+               filtroKeep = filtroKeep,
+               varsJoin = c('opcG01','opcFila'),
+               accionInt = '',
+               colsDrop = NULL,
+               opcGroupNames = 'Aos',#'Años'
+               opcFilaName = 'Sexo',
+               restColsNames = NULL,
+               nround = 1,
+               flipp = F,
+               ordenCols = NULL) 
+
+
+kbl_CuadroEvol(cc,
+                header = NULL,
+                nColGroup = 1,
+                Caption = 'Personas por categoría de ocupación según sexo',
+                nFilas = 3)
+
+
+```
+
+
+```{r ocup15}
+cc = integraCuadros(datEstim = estimAll, 
+               id_Indicador = c(22),
+               varAggr = 'opcG02',
+               addTotal = T,
+               filtroKeep = filtroKeep,
+               varsJoin = c('opcG01','opcFila'),
+               accionInt = '',
+               colsDrop = NULL,
+               opcGroupNames = 'Aos',#'Años'
+               opcFilaName = 'Sexo',
+               restColsNames = NULL,
+               nround = 1,
+               flipp = F,
+               ordenCols = NULL) 
+
+
+kbl_CuadroEvol(cc,
+                header = NULL,
+                nColGroup = 1,
+                Caption = 'Personas ocupadas según derecho a jubilación por sexo',
+                nFilas = 3)
+
+
+```
+
+
+
+```{r ocup16}
+cc = integraCuadros(datEstim = estimAll, 
+               id_Indicador = c(23),
+               varAggr = 'opcG02',
+               addTotal = T,
+               filtroKeep = filtroKeep,
+               varsJoin = c('opcG01','opcFila'),
+               accionInt = '',
+               colsDrop = NULL,
+               opcGroupNames = 'Aos',#'Años'
+               opcFilaName = 'Sexo',
+               restColsNames = NULL,
+               nround = 1,
+               flipp = F,
+               ordenCols = NULL) 
+
+
+kbl_CuadroEvol(cc,
+                header = NULL,
+                nColGroup = 1,
+                Caption = 'Cantidad de horas trabajadas por semana según sexo',
+                nFilas = 3)
+
+
+```
+
+```{r ocup17}
+cc = integraCuadros(datEstim = estimAll, 
+               id_Indicador = c(24),
+               varAggr = 'opcG02',
+               addTotal = F,
+               filtroKeep = filtroKeep,
+               varsJoin = c('opcG01','opcFila'),
+               accionInt = '',
+               colsDrop = 'opcFila',
+               opcGroupNames = 'Años',#'Años'
+               opcFilaName = NULL,
+               restColsNames = NULL,
+               nround = 1,
+               flipp = T,
+               ordenCols = NULL) 
+
+
+kbl_CuadroEvol(cc,
+                header = NULL,
+                nColGroup = NULL,
+                Caption = 'Personas subocupadas según sexo',
+                nFilas = 1)
+
+
+```
+
+```{r ocup18}
+cc = integraCuadros(datEstim = estimAll, 
+               id_Indicador = c(25),
+               varAggr = 'opcG02',
+               addTotal = T,
+               filtroKeep = filtroKeep,
+               varsJoin = c('opcG01','opcFila'),
+               accionInt = '',
+               colsDrop = NULL,
+               opcGroupNames = 'Aos',#'Años'
+               opcFilaName = 'Sexo',
+               restColsNames = NULL,
+               nround = 1,
+               flipp = F,
+               ordenCols = NULL) 
+
+
+kbl_CuadroEvol(cc,
+                header = NULL,
+                nColGroup = 1,
+                Caption = 'Segregación ocupacional',
+                nFilas = 3)
+
+
+```
+
+
+
+```{r ocup19}
+cc = integraCuadros(datEstim = estimAll, 
+               id_Indicador = c(26),
+               varAggr = 'opcG02',
+               addTotal = T,
+               filtroKeep = filtroKeep,
+               varsJoin = c('opcG01','opcFila'),
+               accionInt = '',
+               colsDrop = NULL,
+               opcGroupNames = 'Aos',#'Años'
+               opcFilaName = 'Sexo',
+               restColsNames = NULL,
+               nround = 1,
+               flipp = F,
+               ordenCols = NULL) 
+
+
+kbl_CuadroEvol(cc,
+                header = NULL,
+                nColGroup = 1,
+                Caption = 'Porcentaje de jóvenes entre 15 y 24 años por actividad según sexo',
+                nFilas = 3)
+
+
+```
+
+
+## Ingreso
+
+El análisis de los ingresos es de suma relevancia para comprender las inequidades de género. Se ha señalado que las mujeres sistemáticamente perciben menores ingresos que los hombres, lo que se traduce en una menor autonomía y una peor percepción respecto a su contribución al bienestar del hogar. Esto genera que las mujeres cuenten con un menor poder de negociación en las decisiones familiares y, en consecuencia, acepten situaciones injustas. [@Sen:Desarrollo2000] 
+
+En esta sección se muestra la siguiente información por sexo: remuneración media por hora de trabajo, considerando únicamente a los ocupados que son asalariados públicos o privados (figura 15 y cuadro \@ref(tab:ingr20)), remuneración media por hora de trabajo por nivel educativo (cuadro \@ref(tab:ingr21)), ingreso medio de los hogares sin valor locativo (figura 16 y cuadro \@ref(tab:ingr22)), ingreso medio de los hogares sin valor locativo según sexo de la jefatura por Centro Comunal Zonal (año -2018) (cuadro 23) y el porcentaje de mayores de 14 años que no tienen ingresos propios (figura 17 y cuadro \@ref(tab:ingr24)).
+
+Para calcular la *remuneración media* se suman los salarios líquidos de la ocupación principal y se divide entre las horas trabajadas por mes. 
+
+El *nivel educativo* se clasifica en tres categorías según el nivel de educación formal aprobado:
+
+* **bajo**: ciclo básico incompleto
+* **medio**: bachillerato incompleto con ciclo básico completo
+* **alto**: bachillerato completo
+
+Se entiende como *valor locativo* al "monto que se estima que debería pagar por alquiler de la vivienda que ocupa un hogar, si el mismo no fuese propietario o usufructuario de ella" (Metodología de la Encuesta Nacional de Hogares Ampliada 2006, Instituto Nacional de Estadística, Uruguay).
+
+
+```{r ingr20}
+cc = integraCuadros(datEstim = estimAll, 
+               id_Indicador = c(27),
+               varAggr = 'opcG02',
+               addTotal = F,
+               filtroKeep = filtroKeep,
+               varsJoin = c('opcG01','opcFila'),
+               accionInt = '',
+               colsDrop = 'opcFila',
+               opcGroupNames = 'Años',
+               opcFilaName = NULL,
+               restColsNames = c('Hombre','Mujer','Total'),
+               nround = 1,
+               flipp = F,
+               ordenCols = NULL,
+               simple = T) 
+
+
+kbl_CuadroEvol(cc,
+                header = NULL,
+                nColGroup = NULL,
+                Caption = 'Remuneración media por hora de trabajo según sexo',
+                nFilas = 3)
+
+
+```
+
+
+
+```{r ingr21}
+cc = integraCuadros(datEstim = estimAll, 
+               id_Indicador = c(28),
+               varAggr = 'opcG02',
+               addTotal = F,
+               filtroKeep = filtroKeep,
+               varsJoin = c('opcG01','opcFila'),
+               accionInt = '',
+               colsDrop = NULL,
+               opcGroupNames = 'Aos',#'Años'
+               opcFilaName = 'Nivel Educativo',
+               restColsNames = NULL,
+               nround = 1,
+               flipp = F,
+               ordenCols = NULL) 
+
+
+kbl_CuadroEvol(cc,
+                header = NULL,
+                nColGroup = 1,
+                Caption = 'Remuneración media por hora de trabajo por nivel educativo según sexo',
+                nFilas = 4)
+
+
+```
+
+
+```{r ingr22}
+cc = integraCuadros(datEstim = estimAll, 
+               id_Indicador = c(29),
+               varAggr = 'opcG02',
+               addTotal = F,
+               filtroKeep = filtroKeep,
+               varsJoin = c('opcG01','opcFila'),
+               accionInt = '',
+               colsDrop = 'opcFila',
+               opcGroupNames = 'Años',
+               opcFilaName = NULL,
+               restColsNames = c('Hombre','Mujer','Total'),
+               nround = 0,
+               flipp = F,
+               ordenCols = NULL,
+               simple = T) 
+
+
+kbl_CuadroEvol(cc,
+                header = NULL,
+                nColGroup = NULL,
+                Caption = ' Ingreso medio de los hogares sin valor locativo según sexo de la jefatura',
+                nFilas = 3)
+
+
+```
+
+
+```{r ingr24}
+cc = integraCuadros(datEstim = estimAll, 
+               id_Indicador = c(30),
+               varAggr = 'opcG02',
+               addTotal = F,
+               filtroKeep = filtroKeep,
+               varsJoin = c('opcG01','opcFila'),
+               accionInt = '',
+               colsDrop = 'opcFila',
+               opcGroupNames = 'Años',
+               opcFilaName = NULL,
+               restColsNames = c('Hombre','Mujer','Total'),
+               nround = 1,
+               flipp = F,
+               ordenCols = NULL,
+               simple = T) 
+
+
+kbl_CuadroEvol(cc,
+                header = NULL,
+                nColGroup = NULL,
+                Caption = 'Personas sin ingreso propio según sexo',
+                nFilas = 3)
+
+
+```
+
+
+## Pobreza e indigencia
+
+Distintas fuentes dan cuenta de que los hogares con jefatura femenina tienen un mayor predominio en los hogares pobres, lo que se conoce con el término *feminización de la pobreza*. Cabe destacar que la consideración de la pobreza en este caso es unidimensional, es decir que se centra únicamente en el ingreso per cápita del hogar y, por lo tanto, no considera aspectos asociados a la pobreza que exceden el alcance del umbral mínimo de ingresos.
+
+A continuación, se presenta la siguiente información: porcentaje de hogares pobres e indigentes según el sexo de la jefatura del hogar (de jure) (figura 18 y cuadro \@ref(tab:pobr25) y figura 19 y cuadro \@ref(tab:pobr26), respectivamente), hogares pobres según sexo de la jefatura por Centro Comunal Zonal para el año 2018 (cuadro 27), y porcentaje de personas pobres a través de la medición combinada de los ingresos propios y del hogar, lo que permite medir la *individualización de la pobreza* (cuadro 28).
+
+La distinción entre los ingresos propios y los del hogar aporta a la perspectiva de género en tanto no asume que si un hogar es pobre todos sus miembros lo son, o en caso contrario, que si un hogar no es pobre sus miembros tampoco lo son, pudiendo identificarse la pobreza individual. Para medir esto se sigue la categorización presentada en el informe de @CEPAL-UNIFEM:Unidad:
+
+
+* *Pobre absoluto*: se encuentra en hogar pobre y percibe ingresos bajos o nulos.
+* *Pobre autónomo*: se encuentra en hogar pobre, pero percibe ingresos medios o altos.
+* *Pobre invisible*: no se encuentra en hogar pobre, sin embargo, percibe ingresos bajos o nulos.
+* *No pobre*: se encuentra en hogar no pobre y percibe ingresos medio o altos.
+
+
+```{r pobr25}
+cc = integraCuadros(datEstim = estimAll, 
+               id_Indicador = c(31),
+               varAggr = 'opcG02',
+               addTotal = F,
+               filtroKeep = filtroKeep,
+               varsJoin = c('opcG01','opcFila'),
+               accionInt = '',
+               colsDrop = 'opcFila',
+               opcGroupNames = 'Años',
+               opcFilaName = NULL,
+               restColsNames = c('Hombre','Mujer','Total'),
+               nround = 1,
+               flipp = F,
+               ordenCols = NULL,
+               simple = T) 
+
+
+kbl_CuadroEvol(cc,
+                header = NULL,
+                nColGroup = NULL,
+                Caption = 'Hogares pobres según sexo de la jefatura del hogar',
+                nFilas = 3)
+
+
+```
+
+
+
+```{r pobr26}
+cc = integraCuadros(datEstim = estimAll, 
+               id_Indicador = c(32),
+               varAggr = 'opcG02',
+               addTotal = F,
+               filtroKeep = filtroKeep,
+               varsJoin = c('opcG01','opcFila'),
+               accionInt = '',
+               colsDrop = 'opcFila',
+               opcGroupNames = 'Años',
+               opcFilaName = NULL,
+               restColsNames = c('Hombre','Mujer','Total'),
+               nround = 1,
+               flipp = F,
+               ordenCols = NULL,
+               simple = T) 
+
+
+kbl_CuadroEvol(cc,
+                header = NULL,
+                nColGroup = NULL,
+                Caption = 'Hogares indigentes según sexo de la jefatura del hogar',
+                nFilas = 3)
+
+
+```
+
+
+# Bibliografía {#refs}
+

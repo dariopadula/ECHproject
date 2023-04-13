@@ -97,8 +97,8 @@ difftime(tfin,tini,units = 'secs')
 estimAll = as_tibble(data.table::rbindlist(results))
 
 ### Pega etiquetas
-estimAll = estimAll %>% left_join(etiq %>% 
-                                    mutate(opcVar = as.character(opcVar)) %>% select(-desc), by = c('varCol' = 'varNom','opcCol' = 'opcVar' ))
+# estimAll = estimAll %>% left_join(etiq %>% 
+#                                     mutate(opcVar = as.character(opcVar)) %>% select(-desc), by = c('varCol' = 'varNom','opcCol' = 'opcVar' ))
 
 ##########################################
 ####### Guarda las estimaciones
@@ -145,7 +145,7 @@ wide_table <- long_table %>%
               id_cols = c(opcG01, opcG02))
 
 
-wide_table %>% filter(opcG01 == 2018 & opcG02 %in% c(1))
+wide_table %>% filter(opcG01 == 2009 & opcG02 %in% c(1))
 
 
 wide_table %>% filter(opcG01 == 2021 & opcG02 %in% c(2))
