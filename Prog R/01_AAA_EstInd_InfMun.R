@@ -116,7 +116,7 @@ integraCuadros(datEstim = estimAll,
 
 
 integraCuadros(datEstim = estimAll, 
-               id_Indicador = c(26:27),
+               id_Indicador = c(20),
                varAggr = 'opcG02',
                addTotal = FALSE,
                filtroKeep = 'opcG01 == 2019',

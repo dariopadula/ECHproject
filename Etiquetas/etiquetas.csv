@@ -1,5 +1,5 @@
 varNom;opcVar;label;desc
-e26;1;Hombre ;Sexo
+e26;1;Hombre;Sexo
 e26;2;Mujer;Sexo
 pobre;0;No pobre;Pobreza
 pobre;1;Pobre;Pobreza
@@ -102,9 +102,9 @@ SiPresco;0;No asiste;Asistencia a preescolar
 SiPresco;1;Si asiste;Asistencia a preescolar
 asistEdu;0;No asiste;Asistencia actual a educación formal
 asistEdu;1;Si asiste;Asistencia actual a educación formal
-TotEducRe;1;Menosa a 9 años;Rangos de años de educación formal
-TotEducRe;2;de 9 a 11 años;Rangos de años de educación formal
-TotEducRe;3;12 o más años;Rangos de años de educación formal
+TotEducRe;1;Bajo;Rangos de años de educación formal
+TotEducRe;2;Medio;Rangos de años de educación formal
+TotEducRe;3;Alto;Rangos de años de educación formal
 TotEducRe4;1;Menos de 6 años;Rangos de años de educación formal
 TotEducRe4;2;de 6 a 9 años;Rangos de años de educación formal
 TotEducRe4;3;de 10 a 12 años;Rangos de años de educación formal
@@ -120,3 +120,14 @@ rezago_4Ca;0;Sin rezago;Rezago educativo
 rezago_4Ca;1;Un año;Rezago educativo
 rezago_4Ca;2;Dos años;Rezago educativo
 rezago_4Ca;3;Más de 2 años;Rezago educativo
+condActividad;1;Menores 14;Condición de actividad
+condActividad;2;Ocupadas;Condición de actividad
+condActividad;3;Desocupadas;Condición de actividad
+condActividad;4;Actividades del hogar;Condición de actividad
+condActividad;5;Estudiante;Condición de actividad
+condActividad;6;Rentista, Jubilada o Pensionista;Condición de actividad
+condActividad;7;Otra;Condición de actividad
+horasTrabT_Rec;1;Menos de 20;Rango de horas trabajadas
+horasTrabT_Rec;2;De 21 a 40;Rango de horas trabajadas
+horasTrabT_Rec;3;De 41 a 60;Rango de horas trabajadas
+horasTrabT_Rec;4;Más de 60;Rango de horas trabajadas

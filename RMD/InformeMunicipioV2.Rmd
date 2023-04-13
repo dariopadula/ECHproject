@@ -1,0 +1,925 @@
+---
+title: ""
+output:
+  html_document:
+    df_print: paged
+    number_sections: yes
+    toc: true
+    toc-title: "Tabla de contenidos"
+    # css: estilo.css
+    toc_float: 
+      collapsed: true
+      smooth_scroll: true
+# header-includes:
+# - \usepackage[utf8]{inputenc}
+# - \usepackage[spanish]{babel}
+# - \usepackage{booktabs}
+# - \usepackage{float}
+# - \floatplacement{table}{H}
+# - \usepackage{caption}
+# - \usepackage{bbm}
+# - \usepackage{fancyhdr}
+# - \usepackage{geometry}
+# geometry: left=2cm,right=2cm,top=3cm,bottom=3cm
+---
+
+
+
+
+<style>
+  h1 {
+    color: #58D68D;
+    font-size: 25px;
+  }
+
+  h2 {
+    color: #58D68D;
+    font-size: 20px;
+  }
+
+  h3 {
+    color: #58D68D;
+    font-size: 16px;
+  }
+  
+</style>
+
+
+
+<!-- <img src="../logos/mapa_icon-01.png" alt="Logo de mi empresa" style="float: left; margin-right: 10px;" /> -->
+
+<!-- <style> -->
+<!--   /* Centrar el título */ -->
+<!--   .title { -->
+<!--     text-align: center; -->
+<!--   } -->
+<!-- </style> -->
+
+<!-- <style> -->
+<!--   .author, .date { -->
+<!--     text-align: center; -->
+<!--   } -->
+<!-- </style> -->
+
+
+
+<style>
+  /* Establece el ancho del contenedor a 100% */
+  .container {
+    width: 100%;
+  }
+  
+  /* Centra el título y le da un tamaño de fuente diferente */
+  div.doc-title {
+    text-align: center;
+    font-size: 36px;
+    font-weight: bold;
+    margin-top: 40px;
+    margin-bottom: 20px;
+  }
+  
+  /* Centra el subtitulo */
+  div.subtitle {
+    text-align: center;
+    font-size: 25px;
+    margin-top: 20px;
+    margin-bottom: 20px;
+  }
+  
+  /* Centra el autor */
+  ul.authors {
+    text-align: center;
+    font-size: 16px;
+    margin-top: 20px;
+    margin-bottom: 20px;
+  }
+  
+  /* Centra fecha */
+  div.date {
+    text-align: center;
+    font-size: 16px;
+    margin-top: 20px;
+    margin-bottom: 20px;
+  }
+</style>
+
+<div class="container">
+  <div class="doc-title">Información Física y Sociodemográfica por
+Municipio</div>
+  <div class="subtitle">Fuente: Fase 1 Censo 2004, Censo 2011, ECH 2019</div>
+  <ul class="authors">
+    <p>Unidad de Estadística</p>
+    <p>Servicio de Gestión Estratégica</p>
+    <p>Departamento de Desarrollo Sostenible e Inteligente</p>
+  </ul>
+<div class="date"> `r format(Sys.Date())` </div>
+</div>
+
+
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = F,message = F,warning = F,
+                      eval = T,fig.align="center",out.width = "100%")
+```
+
+```{r}
+paquetes = c('dplyr','ggplot2','ggrepel','knitr','kableExtra',
+             'tidyr','plotly','data.table',
+             'conflicted')
+
+
+instalpkg = installed.packages()[,'Package']
+pkginstall = paquetes[!paquetes %in% instalpkg]
+
+if(length(pkginstall) > 0) install.packages(pkginstall)
+
+###########################
+#### LIBRERIAS
+for(ii in paquetes) eval(bquote(library(.(ii))))
+
+```
+
+
+```{r}
+
+
+conflict_prefer("select","dplyr")
+conflict_prefer("filter","dplyr")
+conflict_prefer("summarise","dplyr")
+conflict_prefer("mutate","dplyr")
+conflict_prefer("rename","dplyr")
+
+```
+
+
+
+```{r settingPars}
+anioRef = 2019
+### Palabra clave
+palClave = 'Municipios'
+### FIltro de las estimaciones
+filtroKeep = paste0('opcG01 == ',anioRef)
+## Color cuadros
+Stripe_Color = "#D7BDE2"
+```
+
+
+```{r}
+## Carga los indicadores y sus caracteristicas
+refInd = read.table(paste0('../Indicadores/ind_',palClave,'.csv'),sep = ';',header = T)
+## Etiquetas
+etiq = read.table('../Etiquetas/etiquetas.csv',sep = ';',header = T,encoding = 'latin1')
+## Etimaciones
+load(paste0('../Resultados/01_AAA_resultsAll_',palClave,'.RData'))
+## Pega etiquetas
+estimAll = estimAll %>% 
+  left_join(etiq %>% 
+            mutate(opcVar = as.character(opcVar)) %>% select(-desc), by = c('varFila' = 'varNom','opcFila' = 'opcVar' )) %>% 
+    mutate(opcFila = ifelse(is.na(label),opcFila,label)) %>% 
+  rename('labelFil' = 'label') %>% 
+  left_join(etiq %>% 
+            mutate(opcVar = as.character(opcVar)) %>% select(-desc), by = c('varCol' = 'varNom','opcCol' = 'opcVar' ))
+
+```
+
+```{r funciones}
+####################
+### funciones
+fun = dir('../Funciones/')
+fun = fun[grep('.R',fun,ignore.case = T)]
+for(ii in fun) source(paste0('../Funciones/',ii))
+
+```
+
+
+# Introducción
+
+El informe presenta indicadores socio-económicos y demográficos que reflejan las condiciones de vida de las personas del departamento de Montevideo.
+
+La información surge de los datos procesados por la Unidad de Estadística de la IM y proporcionados por el Instituto Nacional de Estadística (INE) a través de los Censos 2004 y 2011, y de la Encuesta Continua de Hogares (ECH) `r anioRef``.
+
+Se toma como área de referencia al tercer nivel de gobierno del departamento, por lo que todos los indicadores se presentan para Montevideo y para cada uno de los ocho Municipios (A, B, C, CH, D, E, F, G).
+
+El informe se estructura en las siguientes secciones:
+
+* datos censales (viviendas, hogares y personas) del departamento de Montevideo.
+* datos de la ECH 2019: indigencia y pobreza, actividad, ocupación y desempleo, educación, ingresos, derechos de salud, vivienda y confort de los hogares.
+* intervalos de confianza.
+* anexo metodológico.
+
+
+# Datos de la Encuesta Continua de Hogares
+
+A partir de la información recopilada en la Encuesta Continua de Hogares (ECH)
+es posible analizar las condiciones de vida de la población en relación a variables socioeconómicas y demográficas.
+
+
+A continuación, se presenta información relativa a: indigencia y pobreza, actividad, ocupación y desempleo, educación, ingresos, derechos de salud, vivienda y confort de los hogares.
+
+
+# Indigencia y pobreza
+La metodología empleada por el INE para medir la pobreza es el método del ingreso. Consiste en comparar el ingreso per cápita de los hogares contra el valor de una Canasta Básica de Alimentos per cápita (línea de indigencia o umbral de pobreza extrema) o contra el valor de una Canasta Básica Total per cápita (o no alimentaria) que incluye, aparte de los alimentos, otros bienes y servicios no alimentarios (línea o umbral de pobreza).
+
+Un hogar cuyos ingresos per cápita son inferiores a la línea de indigencia o pobreza se define como indigente o pobre según corresponda. En otras palabras, si los ingresos per cápita del hogar son insuficientes para cubrir las necesidades alimentarias de sus miembros se define como “indigente”, mientras que si no alcanzan a cubrir las necesidades alimentarias y las no alimentarias de sus miembros se clasifica como un hogar “pobre”.
+
+En este trabajo se utiliza la metodología INE 2006.
+
+
+## Indigencia
+La indigencia es concebida como una forma de pobreza absoluta que trasciende el ingreso y las posibilidades económicas del individuo para desarrollarse, alterando las capacidades, potencialidades y oportunidades de la población.
+
+La literatura que aborda la temática señala que la indigencia limita los procesos de autoestima, las posibilidades de construcción del sentido de identidad de la población y del individuo, y debilita las capacidades de acceso y contacto con estructuras e instituciones sociales tomadoras de decisiones.
+
+A continuación, se presenta la incidencia de la indigencia en los hogares y personas de Montevideo por Municipio, distinguiendo a las personas menores de 18 años de edad.
+
+
+```{r}
+cc = integraCuadros(datEstim = estimAll, 
+               id_Indicador = c(3,4),
+               varAggr = 'opcG02',
+               addTotal = FALSE,
+               filtroKeep = filtroKeep,
+               varsJoin = c('opcG01','opcFila'),
+               accionInt = 'cbind',
+               colsDrop = 'opcG01',
+               opcFilaName = 'Municipio',
+               restColsNames = c('Mayores de 18 años','18 años o menos','Total','Hogares')) 
+
+Caption = 'Total de problemas'
+
+
+align = paste(c('l',rep('r',(ncol(cc)-1))),collapse = '')
+kbl(cc,caption = Caption, format.args = list(decimal.mark = ","),
+                    booktabs = T, align = align, linesep = '') %>% 
+                    row_spec(nrow(cc), bold = T, color = "black") %>%
+                    column_spec(1, bold = T, color = "black") %>%
+                    row_spec(0, bold = T, color = "black") %>%
+                    add_header_above(c(" " = 1, "% Personas" = 3," " = 1), bold = T)  %>%
+                    kable_classic_2("striped",full_width = F)
+                    # kable_paper("striped", full_width = T, stripe_color = Stripe_Color)
+
+
+```
+
+## Pobreza
+Se identifica el porcentaje de personas y hogares pobres en Montevideo y en cada Municipio según tramos de edad.
+
+
+```{r}
+cc = integraCuadros(datEstim = estimAll, 
+               id_Indicador = c(1,2),
+               varAggr = 'opcG02',
+               addTotal = FALSE,
+               filtroKeep = filtroKeep,
+               varsJoin = c('opcG01','opcFila'),
+               accionInt = 'cbind',
+               colsDrop = c('opcG01'),
+               opcFilaName = 'Municipio',
+               restColsNames = c('de 0 a 4','de 5 a 12','13 a 60','60 o +','Total','Hogares')) 
+
+Caption = 'Total de problemas'
+
+
+align = paste(c('l',rep('r',(ncol(cc)-1))),collapse = '')
+kbl(cc,caption = Caption, format.args = list(decimal.mark = ","),
+                    booktabs = T, align = "lrrrrrr", linesep = '') %>% 
+                    row_spec(nrow(cc), bold = T, color = "black") %>%
+                    column_spec(1, bold = T, color = "black") %>%
+                    row_spec(0, bold = T, color = "black") %>%
+                    add_header_above(c(" " = 1, "% Personas" = 5," " = 1), bold = T) %>%
+                    kable_classic_2("striped",full_width = F)
+  
+                    # kable_paper("striped", full_width = T, stripe_color = Stripe_Color)
+
+```
+
+# Actividad, ocupación y desempleo
+Con el objetivo de visualizar la inserción laboral de las personas y las oportunidades de la población de acceder a niveles óptimos de calidad de vida, se estudian los indicadores de actividad, ocupación y desempleo por Municipio.
+
+
+```{r}
+cc = integraCuadros(datEstim = estimAll, 
+               id_Indicador = c(6,7,5),
+               varAggr = 'opcG02',
+               addTotal = FALSE,
+               filtroKeep = filtroKeep,
+               varsJoin = c('opcG01','opcFila'),
+               accionInt = 'cbind',
+               colsDrop = c('opcG01'),
+               opcFilaName = 'Municipio',
+               restColsNames = rep(c('Hombre','Mujer','Total'),3)) 
+
+Caption = 'Total de problemas'
+
+
+align = paste(c('l',rep('r',(ncol(cc)-1))),collapse = '')
+kbl(cc,caption = Caption, format.args = list(decimal.mark = ","),
+                    booktabs = T, align = "lrrrrrrrrr", linesep = '') %>% 
+                    row_spec(nrow(cc), bold = T, color = "black") %>%
+                    column_spec(1, bold = T, color = "black") %>%
+                    row_spec(0, bold = T, color = "black") %>%
+                    add_header_above(c(" " = 1, "Tasa de actividad" = 3, "Tasa de empleo" = 3, "Tasa de desempleo" = 3), bold = T)   %>%
+                    kable_classic_2("striped",full_width = F)
+                    # kable_paper("striped", full_width = T, stripe_color = Stripe_Color)
+
+```
+
+```{r}
+cc = integraCuadros(datEstim = estimAll, 
+               id_Indicador = c(9),
+               varAggr = 'opcG02',
+               addTotal = FALSE,
+               filtroKeep = filtroKeep,
+               varsJoin = c('opcG01','opcFila'),
+               accionInt = '',
+               colsDrop = c('opcG01'),
+               opcFilaName = 'Municipio',
+               restColsNames = c('Menores de 25','25 o +','Total')) 
+
+Caption = 'Total de problemas'
+
+
+align = paste(c('l',rep('r',(ncol(cc)-1))),collapse = '')
+kbl(cc,caption = Caption, format.args = list(decimal.mark = ","),
+                    booktabs = T, align = "lrrr", linesep = '') %>% 
+                    row_spec(nrow(cc), bold = T, color = "black") %>%
+                    column_spec(1, bold = T, color = "black") %>%
+                    row_spec(0, bold = T, color = "black")   %>%
+                    kable_classic_2("striped",full_width = F)
+                    # kable_paper("striped", full_width = T, stripe_color = Stripe_Color)
+
+```
+
+
+```{r}
+cc = integraCuadros(datEstim = estimAll, 
+               id_Indicador = c(10),
+               varAggr = 'opcG02',
+               addTotal = FALSE,
+               filtroKeep = filtroKeep,
+               varsJoin = c('opcG01','opcFila'),
+               accionInt = '',
+               colsDrop = c('opcG01'),
+               opcFilaName = 'Municipio',
+               restColsNames = c('Hombres','Mujeres','Total')) 
+
+Caption = 'Total de problemas'
+
+
+align = paste(c('l',rep('r',(ncol(cc)-1))),collapse = '')
+kbl(cc,caption = Caption, format.args = list(decimal.mark = ","),
+                    booktabs = T, align = "lrrr", linesep = '') %>% 
+                    row_spec(nrow(cc), bold = T, color = "black") %>%
+                    column_spec(1, bold = T, color = "black") %>%
+                    row_spec(0, bold = T, color = "black")    %>%
+                    kable_classic_2("striped",full_width = F)
+                    # kable_paper("striped", full_width = T, stripe_color = Stripe_Color)
+
+```
+
+# Educación
+
+La educación juega un papel clave en las sociedades ya que permite el desarrollo de las capacidades productivas, culturales y sociales de las personas.
+
+Se presentan los siguientes indicadores: clima educativo del hogar, asistencia a centros educativos de menores
+de 5 años, actividad de los y las adolescentes y jóvenes entre 15 y 24 años, nivel educativo, años promedio de
+educación y rezago escolar para cada Municipio y para Montevideo.
+
+
+```{r}
+cc = integraCuadros(datEstim = estimAll, 
+               id_Indicador = c(36),
+               varAggr = 'opcG02',
+               addTotal = TRUE,
+               filtroKeep = filtroKeep,
+               varsJoin = c('opcG01','opcFila'),
+               accionInt = '',
+               colsDrop = c('opcG01'),
+               opcFilaName = 'Municipio',
+               restColsNames = c('Bajo','Medio','Alto','Total')) 
+
+Caption = 'Total de problemas'
+
+
+align = paste(c('l',rep('r',(ncol(cc)-1))),collapse = '')
+kbl(cc,caption = Caption, format.args = list(decimal.mark = ","),
+                    booktabs = T, align = "lrrrr", linesep = '') %>% 
+                    row_spec(nrow(cc), bold = T, color = "black") %>%
+                    column_spec(1, bold = T, color = "black") %>%
+                    row_spec(0, bold = T, color = "black")    %>%
+                    kable_classic_2("striped",full_width = F)
+                    # kable_paper("striped", full_width = T, stripe_color = Stripe_Color)
+
+```
+
+
+
+```{r}
+cc = integraCuadros(datEstim = estimAll, 
+               id_Indicador = c(11:13),
+               varAggr = 'opcG02',
+               addTotal = F,
+               filtroKeep = filtroKeep,
+               varsJoin = c('opcG01','opcFila'),
+               accionInt = 'cbind',
+               colsDrop = c('opcG01'),
+               opcFilaName = 'Municipio',
+               restColsNames = c('de 0 a 3','de 4 a 5','Total')) 
+
+Caption = 'Total de problemas'
+
+
+align = paste(c('l',rep('r',(ncol(cc)-1))),collapse = '')
+kbl(cc,caption = Caption, format.args = list(decimal.mark = ","),
+                    booktabs = T, align = "lrrr", linesep = '') %>% 
+                    row_spec(nrow(cc), bold = T, color = "black") %>%
+                    column_spec(1, bold = T, color = "black") %>%
+                    row_spec(0, bold = T, color = "black")    %>%
+                    kable_classic_2("striped",full_width = F)
+                    # kable_paper("striped", full_width = T, stripe_color = Stripe_Color)
+
+```
+
+```{r}
+cc = integraCuadros(datEstim = estimAll, 
+               id_Indicador = c(37),
+               varAggr = 'opcG02',
+               addTotal = T,
+               filtroKeep = filtroKeep,
+               varsJoin = c('opcG01','opcFila'),
+               accionInt = '',
+               colsDrop = c('opcG01'),
+               opcFilaName = 'Municipio',
+               restColsNames = NULL) 
+
+Caption = 'Total de problemas'
+
+
+align = paste(c('l',rep('r',(ncol(cc)-1))),collapse = '')
+kbl(cc,caption = Caption, format.args = list(decimal.mark = ","),
+                    booktabs = T, align = "lrrrrr", linesep = '') %>% 
+                    row_spec(nrow(cc), bold = T, color = "black") %>%
+                    column_spec(1, bold = T, color = "black") %>%
+                    row_spec(0, bold = T, color = "black")   %>%
+                    kable_classic_2("striped",full_width = F)
+                    # kable_paper("striped", full_width = T, stripe_color = Stripe_Color)
+
+```
+
+
+```{r}
+cc = integraCuadros(datEstim = estimAll, 
+               id_Indicador = c(14:16),
+               varAggr = 'opcG02',
+               addTotal = F,
+               filtroKeep = filtroKeep,
+               varsJoin = c('opcG01','opcFila'),
+               accionInt = 'cbind',
+               colsDrop = c('opcG01'),
+               opcFilaName = 'Municipio',
+               restColsNames = c('Primaria incompleta','Ciclo Basico incompleto','Secundaria completa')) 
+
+Caption = 'Total de problemas'
+
+
+align = paste(c('l',rep('r',(ncol(cc)-1))),collapse = '')
+kbl(cc,caption = Caption, format.args = list(decimal.mark = ","),
+                    booktabs = T, align = "lrrr", linesep = '') %>% 
+                    row_spec(nrow(cc), bold = T, color = "black") %>%
+                    column_spec(1, bold = T, color = "black") %>%
+                    row_spec(0, bold = T, color = "black")   %>%
+                    kable_classic_2("striped",full_width = F)
+
+```
+
+
+```{r}
+cc = integraCuadros(datEstim = estimAll, 
+               id_Indicador = c(17:18),
+               varAggr = 'opcG02',
+               addTotal = F,
+               filtroKeep = filtroKeep,
+               varsJoin = c('opcG01','opcFila'),
+               accionInt = 'cbind',
+               colsDrop = c('opcG01'),
+               opcFilaName = 'Municipio',
+               restColsNames = c('Rezago escolar','Promedio de educacion formal')) 
+
+Caption = 'Total de problemas'
+
+
+align = paste(c('l',rep('r',(ncol(cc)-1))),collapse = '')
+kbl(cc,caption = Caption, format.args = list(decimal.mark = ","),
+                    booktabs = T, align = "lrr", linesep = '') %>% 
+                    row_spec(nrow(cc), bold = T, color = "black") %>%
+                    column_spec(1, bold = T, color = "black") %>%
+                    row_spec(0, bold = T, color = "black")   %>%
+                    kable_classic_2("striped",full_width = F)
+
+```
+
+
+# Ingresos
+
+La distribución del ingreso en una sociedad permite aproximarse a los niveles de bienestar y de equidad social de la población. El grado de desigualdad entre distintas zonas o regiones da una idea de los procesos de desigualdad territorial.
+
+Se presenta el ingreso medio de los hogares de Montevideo para cada Municipio según el sexo de la jefatura del hogar.
+
+
+```{r}
+cc = integraCuadros(datEstim = estimAll, 
+               id_Indicador = c(20),
+               varAggr = 'opcG02',
+               addTotal = F,
+               filtroKeep = filtroKeep,
+               varsJoin = c('opcG01','opcFila'),
+               accionInt = '',
+               colsDrop = c('opcG01'),
+               opcFilaName = 'Municipio',
+               restColsNames = c('Hombres','Mujeres','Total'),
+               nround = 0) 
+
+Caption = 'Total de problemas'
+
+
+align = paste(c('l',rep('r',(ncol(cc)-1))),collapse = '')
+kbl(cc,caption = Caption, format.args = list(decimal.mark = ","),
+                    booktabs = T, align = "lrrr", linesep = '') %>% 
+                    row_spec(nrow(cc), bold = T, color = "black") %>%
+                    column_spec(1, bold = T, color = "black") %>%
+                    row_spec(0, bold = T, color = "black")   %>%
+                    kable_classic_2("striped",full_width = F)
+
+```
+
+
+# Derechos de Salud
+El derecho de salud hace referencia al derecho que tienen las personas de disponer de servicios de salud. Es una medida del estado sanitario de la población.
+
+A continuación, se presenta la información relacionada con los derechos de salud de la población por sexo y grupos de edad. Se agrupa a la población bajo los términos ***sin cobertura, solo emergencia móvil, atención en salud pública, atención en mutualista, seguro de salud privado y otro***.
+
+```{r}
+cc = integraCuadros(datEstim = estimAll, 
+               id_Indicador = c(38),
+               varAggr = 'opcG02',
+               addTotal = F,
+               filtroKeep = filtroKeep,
+               varsJoin = c('opcG01','opcFila'),
+               accionInt = '',
+               colsDrop = c('opcG01'),
+               opcFilaName = 'Municipio',
+               restColsNames = NULL) 
+
+Caption = 'Total de problemas'
+
+
+align = paste(c('l',rep('r',(ncol(cc)-1))),collapse = '')
+kbl(cc,caption = Caption, format.args = list(decimal.mark = ","),
+                    booktabs = T, align = "lrrr", linesep = '') %>% 
+                    row_spec(nrow(cc), bold = T, color = "black") %>%
+                    column_spec(1, bold = T, color = "black") %>%
+                    row_spec(0, bold = T, color = "black")   %>%
+                    kable_classic_2("striped",full_width = F)
+
+```
+
+```{r}
+cc = integraCuadros(datEstim = estimAll, 
+               id_Indicador = c(39),
+               varAggr = 'opcG02',
+               addTotal = F,
+               filtroKeep = filtroKeep,
+               varsJoin = c('opcG01','opcFila'),
+               accionInt = '',
+               colsDrop = c('opcG01'),
+               opcFilaName = 'Municipio',
+               restColsNames = NULL) 
+
+Caption = 'Total de problemas'
+
+
+align = paste(c('l',rep('r',(ncol(cc)-1))),collapse = '')
+kbl(cc,caption = Caption, format.args = list(decimal.mark = ","),
+                    booktabs = T, align = "lrrr", linesep = '') %>% 
+                    row_spec(nrow(cc), bold = T, color = "black") %>%
+                    column_spec(1, bold = T, color = "black") %>%
+                    row_spec(0, bold = T, color = "black")   %>%
+                    kable_classic_2("striped",full_width = F)
+
+```
+
+```{r}
+cc = integraCuadros(datEstim = estimAll, 
+               id_Indicador = c(40),
+               varAggr = 'opcG02',
+               addTotal = F,
+               filtroKeep = filtroKeep,
+               varsJoin = c('opcG01','opcFila'),
+               accionInt = '',
+               colsDrop = c('opcG01'),
+               opcFilaName = 'Municipio',
+               restColsNames = NULL) 
+
+Caption = 'Total de problemas'
+
+
+align = paste(c('l',rep('r',(ncol(cc)-1))),collapse = '')
+kbl(cc,caption = Caption, format.args = list(decimal.mark = ","),
+                    booktabs = T, align = "lrrr", linesep = '') %>% 
+                    row_spec(nrow(cc), bold = T, color = "black") %>%
+                    column_spec(1, bold = T, color = "black") %>%
+                    row_spec(0, bold = T, color = "black")   %>%
+                    kable_classic_2("striped",full_width = F)
+
+```
+
+
+```{r}
+cc = integraCuadros(datEstim = estimAll, 
+               id_Indicador = c(41),
+               varAggr = 'opcG02',
+               addTotal = F,
+               filtroKeep = filtroKeep,
+               varsJoin = c('opcG01','opcFila'),
+               accionInt = '',
+               colsDrop = c('opcG01'),
+               opcFilaName = 'Municipio',
+               restColsNames = NULL) 
+
+Caption = 'Total de problemas'
+
+
+align = paste(c('l',rep('r',(ncol(cc)-1))),collapse = '')
+kbl(cc,caption = Caption, format.args = list(decimal.mark = ","),
+                    booktabs = T, align = "lrrr", linesep = '') %>% 
+                    row_spec(nrow(cc), bold = T, color = "black") %>%
+                    column_spec(1, bold = T, color = "black") %>%
+                    row_spec(0, bold = T, color = "black")   %>%
+                    kable_classic_2("striped",full_width = F)
+
+```
+
+# Vivienda
+En este apartado se estudia la temática de la vivienda en relación a la tenencia, el grado de adecuación y sus condiciones. A su vez, se analiza el acceso a servicios sanitarios completos y el hacinamiento. Por último, se presenta el porcentaje de hogares que poseen electrodomésticos y servicios de telecomunicaciones.
+
+
+
+```{r}
+cc = integraCuadros(datEstim = estimAll, 
+               id_Indicador = c(42),
+               varAggr = 'opcG02',
+               addTotal = F,
+               filtroKeep = filtroKeep,
+               varsJoin = c('opcG01','opcFila'),
+               accionInt = '',
+               colsDrop = c('opcG01'),
+               opcFilaName = 'Municipio',
+               restColsNames = NULL) 
+
+Caption = 'Total de problemas'
+
+
+align = paste(c('l',rep('r',(ncol(cc)-1))),collapse = '')
+kbl(cc,caption = Caption, format.args = list(decimal.mark = ","),
+                    booktabs = T, align = "lrrr", linesep = '') %>% 
+                    row_spec(nrow(cc), bold = T, color = "black") %>%
+                    column_spec(1, bold = T, color = "black") %>%
+                    row_spec(0, bold = T, color = "black")   %>%
+                    kable_classic_2("striped",full_width = F)
+
+```
+
+
+
+```{r}
+cc = integraCuadros(datEstim = estimAll, 
+               id_Indicador = c(43),
+               varAggr = 'opcG02',
+               addTotal = T,
+               filtroKeep = filtroKeep,
+               varsJoin = c('opcG01','opcFila'),
+               accionInt = '',
+               colsDrop = c('opcG01'),
+               opcFilaName = 'Municipio',
+               restColsNames = NULL) 
+
+Caption = 'Total de problemas'
+
+
+align = paste(c('l',rep('r',(ncol(cc)-1))),collapse = '')
+kbl(cc,caption = Caption, format.args = list(decimal.mark = ","),
+                    booktabs = T, align = "lrrrr", linesep = '') %>% 
+                    row_spec(nrow(cc), bold = T, color = "black") %>%
+                    column_spec(1, bold = T, color = "black") %>%
+                    row_spec(0, bold = T, color = "black")   %>%
+                    kable_classic_2("striped",full_width = F)
+```
+
+
+
+```{r}
+cc = integraCuadros(datEstim = estimAll, 
+               id_Indicador = c(21:25),
+               varAggr = 'opcG02',
+               addTotal = F,
+               filtroKeep = filtroKeep,
+               varsJoin = c('opcG01','opcFila'),
+               accionInt = 'cbind',
+               colsDrop = c('opcG01'),
+               opcFilaName = 'Municipio',
+               restColsNames = NULL) 
+
+Caption = 'Total de problemas'
+
+
+align = paste(c('l',rep('r',(ncol(cc)-1))),collapse = '')
+kbl(cc,caption = Caption, format.args = list(decimal.mark = ","),
+                    booktabs = T, align = "lrrrrr", linesep = '') %>% 
+                    row_spec(nrow(cc), bold = T, color = "black") %>%
+                    column_spec(1, bold = T, color = "black") %>%
+                    row_spec(0, bold = T, color = "black")   %>%
+                    kable_classic_2("striped",full_width = F)
+
+```
+
+
+
+```{r}
+cc = integraCuadros(datEstim = estimAll, 
+               id_Indicador = c(26:27),
+               varAggr = 'opcG02',
+               addTotal = F,
+               filtroKeep = filtroKeep,
+               varsJoin = c('opcG01','opcFila'),
+               accionInt = 'cbind',
+               colsDrop = c('opcG01'),
+               opcFilaName = 'Municipio',
+               restColsNames = c('Servicio sanitario incompleto','Hacinamiento')) 
+
+Caption = 'Total de problemas'
+
+
+align = paste(c('l',rep('r',(ncol(cc)-1))),collapse = '')
+kbl(cc,caption = Caption, format.args = list(decimal.mark = ","),
+                    booktabs = T, align = "lrr", linesep = '') %>% 
+                    row_spec(nrow(cc), bold = T, color = "black") %>%
+                    column_spec(1, bold = T, color = "black") %>%
+                    row_spec(0, bold = T, color = "black")   %>%
+                    kable_classic_2("striped",full_width = F)
+
+```
+
+
+
+```{r}
+cc = integraCuadros(datEstim = estimAll, 
+               id_Indicador = c(32:35),
+               varAggr = 'opcG02',
+               addTotal = F,
+               filtroKeep = filtroKeep,
+               varsJoin = c('opcG01','opcFila'),
+               accionInt = 'cbind',
+               colsDrop = c('opcG01'),
+               opcFilaName = 'Municipio',
+               restColsNames = c('Lavarropa','Lavavajilla','Microondas','Auto')) 
+
+Caption = 'Total de problemas'
+
+
+align = paste(c('l',rep('r',(ncol(cc)-1))),collapse = '')
+kbl(cc,caption = Caption, format.args = list(decimal.mark = ","),
+                    booktabs = T, align = "lrrrr", linesep = '') %>% 
+                    row_spec(nrow(cc), bold = T, color = "black") %>%
+                    column_spec(1, bold = T, color = "black") %>%
+                    row_spec(0, bold = T, color = "black")   %>%
+                    kable_classic_2("striped",full_width = F)
+
+```
+
+
+```{r}
+cc = integraCuadros(datEstim = estimAll, 
+               id_Indicador = c(28:31),
+               varAggr = 'opcG02',
+               addTotal = F,
+               filtroKeep = filtroKeep,
+               varsJoin = c('opcG01','opcFila'),
+               accionInt = 'cbind',
+               colsDrop = c('opcG01'),
+               opcFilaName = 'Municipio',
+               restColsNames = c('Cable','Teléfono','Internet','Computadora')) 
+
+Caption = 'Total de problemas'
+
+
+align = paste(c('l',rep('r',(ncol(cc)-1))),collapse = '')
+kbl(cc,caption = Caption, format.args = list(decimal.mark = ","),
+                    booktabs = T, align = "lrrrr", linesep = '') %>% 
+                    row_spec(nrow(cc), bold = T, color = "black") %>%
+                    column_spec(1, bold = T, color = "black") %>%
+                    row_spec(0, bold = T, color = "black")   %>%
+                    kable_classic_2("striped",full_width = F)
+
+```
+
+# Anexo Metodológico
+
+## Pobreza, indigencia y Canasta Básica Alimentaria
+La Canasta Básica Alimentaria (CBA) es el conjunto de bienes alimentarios que se consideran imprescindibles para una nutrición adecuada del individuo. Su precio o valor monetario per cápita constituye la denominada “Línea de Indigencia” o “Línea de Pobreza Extrema”. Por debajo de ella los ingresos de un hogar son insuficientes para alimentar adecuadamente a sus miembros.
+
+Así como se seleccionan los artículos para constituir la CBA, se podrían seleccionar los de los rubros no alimentarios: vivienda, vestimenta y calzado, mobiliario y utensilios, comunicaciones, salud, educación, entretenimiento y servicios principales. Sin embargo, no es tan sencilla la selección por los mismos criterios que los de la alimentación, ya que algunos gastos afectan por una sola vez a todo el hogar (por ejemplo vivienda,
+electricidad, gas y agua) y otros afectan individualmente a parte o a todos los integrantes pero con distinto peso (por ejemplo vestimenta, calzado, educación, salud, transporte). Además, el gasto de los hogares no se incrementa linealmente con el tamaño del hogar y su composición por edades, por lo que se toman en cuenta
+las llamadas “economías de escala” por las cuales hogares cuyos recursos brutos los señalarían como pobres no lo son debido a las transferencias de bienes entre sus miembros (ropa, calzado, útiles, libros) y a que el gasto en los bienes colectivos (vivienda, luz, agua) se reparte entre más personas.
+
+La Canasta Básica No Alimentaria incluye, entre otros, los gastos de vivienda (valor locativo, alquiler, luz, teléfono, agua), transporte (boletos), salud (cuota mutual, emergencia, medicamentos), enseñanza, artículos de limpieza e higiene personal, calzado.
+
+Este trabajo utiliza la metodología INE 2006 basada en los resultados obtenidos de la Encuesta de Gastos e Ingresos de los Hogares (EGIH) 2005-2006. Esta metodología incorpora las bebidas y comidas fuera del hogar así como las bebidas alcohólicas en el cálculo de la CBA, que en la metodología del 2002 se habían eliminado. Esta reincorporación se debe a que el costo por caloría de estos conceptos ha bajado y el gasto en comidas fuera
+del hogar ha presentado un importante aumento en el período que transcurre entre la elaboración de ambas metodologías.
+
+Otro cambio relevante con respecto a la metodología 2002 es que se encuentra que la estructura de consumo de alimentos es similar en Montevideo y el interior urbano, y difiere en el interior uural. Así, se conforman dos CBA, una para localidades urbanas (calculada como un promedio ponderado de las estructuras de consumo alimentario obtenidas para Montevideo y para el Interior Urbano) y otra para el área rural.
+
+Por su parte, la actualización de los componentes alimentarios la hace por el IPC de los respectivos subrubros mientras que la de los componentes no alimentarios la hace por los precios de los rubros que corresponden. Esto implica que a lo largo del tiempo, la relación de costos entre ambos componentes (alimentarios y no alimentarios) puede ir cambiando. Por último, cabe mencionar que en la nueva metodología se opta por no considerar Coeficientes de Orshansky fijos para el cálculo de la línea de pobreza.
+
+Por más información respecto a la metodología (2006) utilizada para el cálculo de la Línea de Pobreza ver “Línea de Pobreza e Indigencia 2006. Metodología y Resultados” elaborado por el INE.
+
+**Vulnerabilidad a la pobreza**: Se entiende por vulnerable a la pobreza aquel hogar y las personas que lo componen cuyos ingresos per cápita son menores a 1 y $\frac{1}{2}$ canastas básicas pero mayores a 1 canasta básica.
+
+
+## Actividad y empleo
+
+**Tasa de actividad**: es la relación entre la *Población Económicamente Activa* (PEA) (personas empleadas y desempleadas) y las *personas en edad de trabajar* (PET) (personas con 14 años o más).
+
+$$T_{A} = \frac{PEA}{PET}\times 100$$
+**Tasa de ocupación**: es la relación entre las *personas ocupadas* (O) y las *personas con 14 años o más* (PET).
+
+$$T_{E} = \frac{O}{PET}\times 100$$
+**Tasa de desempleo**: es la relación entre las *personas desempleadas* (D) y las *personas económicamente activas* (PEA).
+
+$$T_{D} = \frac{D}{PEA}\times 100$$
+
+## Educación
+
+**Clima educativo**: es el promedio de años de estudio entre los miembros del hogar. Este indicador se calcula para los hogares donde vive por lo menos una persona entre 21 y 65 años de edad. Se operacionaliza en tres niveles: Bajo (cuando el promedio es menor a 9 años), Medio (cuando el promedio se ubica entre 9 y 12 años) y Alto (cuando el promedio es superior a los 12 años de estudio).
+
+**Rezago escolar**: refiere a la no correspondencia entre los años de educación formal alcanzados (independiente del nivel) y los esperados de acuerdo a la edad entre las personas de 8 a 15 años.
+
+## Derechos de salud
+El derecho de salud hace referencia al derecho que tienen las personas de disponer de servicios de salud y es una medida del estado sanitario de la población. Se agrupa a la población bajo los términos *sin cobertura, solo emergencia móvil, atención en salud pública, atención en mutualista, seguro de salud privado y otro*.
+
+* **Sector público**: comprende al MSP, Hospital de Clínicas, Sanidad Policial, Sanidad Militar, Policlínica Municipal y Área de salud del BPS (Asignaciones familiares).
+
+* **Mutualista**: comprende a la Instituciones de Atención Médica Colectiva (IAMC).
+
+* **Sector privado**: comprende los seguros privados médico, quirúrgico y ambos.
+
+
+El total de los porcentajes no suma 100 ya que hay diferentes combinaciones entre los tipos de cobertura.
+
+
+## Vivienda
+
+### Estado de la vivienda
+Las viviendas se clasifican como adecuadas, medianamente adecuadas e inadecuadas teniendo en cuenta el estado de los siguientes componentes: paredes, techos y pisos. Se determina el estado de cada componente siguiendo la siguiente metodología:
+
+* **Paredes**
+
+  * **Paredes adecuadas**: paredes con ladrillos, ticholos o bloques terminados.
+  * **Paredes medianamente adecuadas**: con ladrillos, ticholos o bloques sin terminar -carentes de aislamiento exterior térmico y/o contra la humedad, tales como revoque impermeable, emulsión asfáltica, entre otros. También se consideran las paredes construidas con materiales livianos pero con revestimiento.
+
+  * **Paredes inadecuadas**: materiales livianos sin revestimiento, adobe o materiales de desecho.
+
+* **Techos**
+
+  * **Techos adecuados**: planchada de hormigón con protección o sin protección o con quincha.
+  * **Techos medianamente adecuados**: liviano con cielo raso.
+  * **Techos inadecuados**: materiales livianos sin cielo raso o materiales de desecho.
+
+* **Pisos**
+
+  * **Pisos adecuados**: Cerámica, parquet, moquete, linóleo, baldosas calcáreas
+  * **Pisos medianamente adecuados**: alisado de hormigón
+  * **Pisos inadecuados**: solo contrapiso sin piso o tierra sin piso ni contrapiso
+
+Definidos los estados de los componentes paredes, techos y pisos, se categorizan las viviendas siguiendo la siguiente metodología:
+
+* **Viviendas adecuadas**: cuando tanto paredes, techos y pisos son adecuados.
+* **Viviendas medianamente adecuadas**: cuando al menos uno de los tres componentes (paredes, techos o pisos) sea catalogado como medianamente adecuado y el resto como adecuado.
+* **Viviendas inadecuadas**: cuando por lo menos uno de los tres componentes se cataloga como inadecuado.
+
+### Condiciones de las viviendas
+
+Para caracterizar las condiciones de las viviendas se consideran los siguientes ítems: *Humedad, Grietas y mampostería, Luz y aire y Derrumbe e inundable*.
+
+
+* **Humedad**: humedades en techos o cimientos, goteras.
+* **Grietas y mampostería**: muros agrietados, grietas en pisos, caída de revoque en paredes o techos, cielos rasos
+desprendidos.
+* **Luz y aire**: puertas o ventanas en mal estado, poca luz solar, escasa ventilación.
+* **Derrumbe e inundable**: se inunda cuando llueve, peligro de derrumbe.
+
+
+### Hacinamiento y servicio sanitario
+
+* **Servicio sanitario incompleto**: son aquellos hogares que no tienen cisterna o no tienen servicio sanitario.
+* **Hacinamiento**: son los hogares con tres o más personas por habitación utilizada para dormir sin contar baño ni cocina.
+
